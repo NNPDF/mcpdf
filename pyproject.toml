@@ -3,6 +3,12 @@ name = "mcpdf"
 version = "0.1.0"
 description = ""
 authors = ["Alessandro Candido <candido.ale@gmail.com>"]
+packages = [
+  { include = "mcpdf", from = "src" },
+  { include = "frompdf", from = "src" },
+  { include = "frompseudodis", from = "src" },
+  { include = "fromdis", from = "src" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"
