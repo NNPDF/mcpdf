@@ -10,3 +10,12 @@ Sample the PDF posterior distribution.
   solution)
 - [src](./src/README.md) contains the source for all the various intermediate
   attempts, but full attempts (possibly on simplified problems)
+
+## Name
+
+The name `mcpdf` is just the temporary identifier for the project, chosen to be
+"compatible" with `nnpdf` (since the deliverable will be once more an MC set,
+but also because at some point MCMC will be involved).
+
+In some sense, it comes just from a generalization, since no neural network is
+going to be involved.
