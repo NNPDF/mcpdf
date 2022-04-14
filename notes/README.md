@@ -12,5 +12,7 @@ confidence (and not to worry again about)
 
 extra:
 
+- notes on [further options](./extra.md) that will be available after we'll have
+  a baseline ready
 - notes on [variational Bayes](./varbayes/README.md)
   - I don't consider a promising approach, but better to keep in mind _AC_
