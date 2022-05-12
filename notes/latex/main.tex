@@ -1,0 +1,78 @@
+\documentclass[a4paper,11pt]{article}
+\pdfoutput=1 % if your are submitting a pdflatex (i.e. if you have
+             % images in pdf, png or jpg format)
+
+\usepackage{styles/jheppub} % for details on the use of the package, please
+                     % see the JHEP-author-manual
+
+\usepackage[T1]{fontenc} % if needed
+
+
+\usepackage{styles/main}
+\usepackage{styles/defs}
+
+\graphicspath{{assets/}}
+
+% Change default header
+\makeatletter
+\gdef\@fpheader{Notes}
+\makeatother
+
+
+\title{Ciao, come va?}
+
+% \collaborationImg{}
+
+% more complex case: 4 authors, 3 institutions, 2 footnotes
+\author[a,1]{Alessandro Candido,}
+
+% The "\note" macro will give a warning: "Ignoring empty anchor..."
+% you can safely ignore it.
+
+\affiliation[a]{Tif Lab, Dipartimento di Fisica, Universit\`a di Milano and\\
+INFN, Sezione di Milano, Via Celoria 16, I-20133 Milano, Italy}
+
+% e-mail addresses: one for each author, in the same order as the authors
+\emailAdd{alessandro.candido@mi.infn.it}
+
+% \preprint{}
+
+\abstract{}
+
+\begin{document} 
+\maketitle
+\flushbottom
+
+\section{Introduction}
+\label{sec:intro}
+\input{sections/introduction}
+
+\section{Conclusions}
+\label{sec:concl}
+\input{sections/conclusions}
+
+% \appendix
+% \section{}
+% \label{app:}
+% \input{}
+
+\acknowledgments
+\label{sec:ack}
+\input{sections/acknowledgments}
+
+
+%\section*{Bibliography}
+
+% The bibliography will probably be heavily edited during typesetting.
+% We'll parse it and, using the arxiv number or the journal data, will
+% query inspire, trying to verify the data (this will probalby spot
+% eventual typos) and retrive the document DOI and eventual errata.
+% We however suggest to always provide author, title and journal data:
+% in short all the informations that clearly identify a document.
+
+\bibliographystyle{styles/JHEP}
+\bibliography{bibliography/refs.bib}
+
+\listoffixmes
+
+\end{document}
