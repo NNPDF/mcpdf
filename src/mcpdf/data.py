@@ -47,11 +47,13 @@ def covmat():
 
 @functools.cache
 def theory():
+    theoryid = API.fit(fit=config["fit"]).as_input()["theory"]["theoryid"]
+
     theory = []
     loader = Loader()
 
     for ds in data():
-        spec = loader.check_dataset(ds.setname, theoryid=200)
+        spec = loader.check_dataset(ds.setname, theoryid=theoryid)
 
         cuts = spec.cuts.load()
 
