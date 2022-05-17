@@ -58,7 +58,24 @@ def theory():
         cuts = spec.cuts.load()
 
         fkdata = dict(op=spec.op)
-        fkdata["elements"] = [load_fktable(fk).with_cuts(cuts) for fk in spec.fkspecs]
+        fkdata["elements"] = []
+
+        for fk in spec.fkspecs:
+            df = load_fktable(fk).with_cuts(cuts).sigma
+            shape = tuple(
+                [
+                    df.index.get_level_values(n).max() + 1
+                    for n in range(len(df.index[0]))
+                ]
+                + [max(df.columns) + 1]
+            )
+
+            fkarray = np.zeros(shape)
+            for el in df.iloc:
+                for i, v in el.items():
+                    fkarray[(*el.name, i)] = v
+
+            fkdata["elements"].append(fkarray)
 
         theory.append(fkdata)
 
