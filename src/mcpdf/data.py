@@ -68,9 +68,10 @@ def theory():
         fkdata = dict(op=spec.op)
         fkdata["elements"] = []
 
-        for fk in spec.fkspecs:
+        for fkspec in spec.fkspecs:
+            fk = load_fktable(fkspec).with_cuts(cuts)
             # Make the dataframe into a dense numpy array
-            df = load_fktable(fk).with_cuts(cuts).sigma
+            df = fk.sigma
 
             # Read up the shape of the output table
             ndata = fk.ndata
