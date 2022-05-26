@@ -1,6 +1,8 @@
 import functools
+from typing import Optional
 
 import numpy as np
+import pandas as pd
 from validphys.api import API
 from validphys.loader import Loader
 from validphys.fkparser import load_fktable
@@ -8,6 +10,80 @@ from validphys.fkparser import load_fktable
 #  from validphys.convolution import OP
 
 from . import data, defaults
+
+
+class FkTable:
+    def __init__(self, table, xgrid, flavors):
+        self.table = table
+        self.xgrid = xgrid
+        self.flavors = flavors
+
+    @classmethod
+    def from_vp_fk(cls, loaded):
+        """Initialize from a `validphys` loaded FkTable.
+
+        Parameters
+        ----------
+
+        """
+        ndata = loaded.ndata
+        nx = len(loaded.xgrid)
+        table = cls.df_to_array(loaded.sigma, ndata, nx, hadronic=loaded.hadronic)
+
+        return cls(table, xgrid=loaded.xgrid, flavors=loaded.shape)
+
+    @staticmethod
+    def df_to_array(
+        df: pd.DataFrame, ndata: int, nx: int, hadronic: bool
+    ) -> np.ndarray:
+        """Make the dataframe into a dense numpy array
+
+        Parameters
+        ----------
+        """
+
+        # Read up the shape of the output table
+        nbasis = df.shape[1]
+
+        if ndata == 0:
+            if hadronic:
+                return np.zeros((ndata, nbasis, nx, nx))
+            return np.zeros((ndata, nbasis, nx))
+
+        # First get the data index out of the way
+        # this is necessary because cuts/shifts and for performance reasons
+        # otherwise we will be putting things in a numpy array in very awkward orders
+        ns = df.unstack(level=("data",), fill_value=0)
+        x1 = ns.index.get_level_values(0)
+
+        if hadronic:
+            x2 = ns.index.get_level_values(1)
+            fkarray = np.zeros((nx, nx, ns.shape[1]))
+            fkarray[x2, x1, :] = ns.values
+
+            # The output is (ndata, basis, x1, x2)
+            fktable = fkarray.reshape((nx, nx, nbasis, ndata)).T
+        else:
+            fkarray = np.zeros((nx, ns.shape[1]))
+            fkarray[x1, :] = ns.values
+
+            # The output is (ndata, basis, x1)
+            fktable = fkarray.reshape((nx, nbasis, ndata)).T
+
+        return fktable
+
+    @property
+    def ndata(self):
+        return self.table.shape[0]
+
+
+class FkCompound:
+    def __init__(self, operation: str, elements: Optional[list[FkTable]] = None):
+        self.operation = operation
+        self.elements = elements if elements is not None else []
+
+    def append(self, elem: FkTable):
+        self.elements.append(elem)
 
 
 @functools.cache
@@ -31,46 +107,11 @@ def theory(config=defaults.config, theoryid=None):
 
         cuts = spec.cuts.load()
 
-        fkdata = dict(op=spec.op)
-        fkdata["elements"] = []
-
+        fk_compound = FkCompound(operation=spec.op)
         for fkspec in spec.fkspecs:
-            fk = load_fktable(fkspec).with_cuts(cuts)
-            # Make the dataframe into a dense numpy array
-            df = fk.sigma
+            loaded = load_fktable(fkspec).with_cuts(cuts)
+            fk_compound.append(FkTable.from_vp_fk(loaded))
 
-            # Read up the shape of the output table
-            ndata = fk.ndata
-            nx = len(fk.xgrid)
-            nbasis = df.shape[1]
-
-            if ndata == 0:
-                if fk.hadronic:
-                    return np.zeros((ndata, nbasis, nx, nx))
-                return np.zeros((ndata, nbasis, nx))
-
-            # First get the data index out of the way
-            # this is necessary because cuts/shifts and for performance reasons
-            # otherwise we will be putting things in a numpy array in very awkward orders
-            ns = df.unstack(level=("data",), fill_value=0)
-            x1 = ns.index.get_level_values(0)
-
-            if fk.hadronic:
-                x2 = ns.index.get_level_values(1)
-                fkarray = np.zeros((nx, nx, ns.shape[1]))
-                fkarray[x2, x1, :] = ns.values
-
-                # The output is (ndata, basis, x1, x2)
-                fktable = fkarray.reshape((nx, nx, nbasis, ndata)).T
-            else:
-                fkarray = np.zeros((nx, ns.shape[1]))
-                fkarray[x1, :] = ns.values
-
-                # The output is (ndata, basis, x1)
-                fktable = fkarray.reshape((nx, nbasis, ndata)).T
-
-            fkdata["elements"].append(fktable)
-
-        theory.append(fkdata)
+        theory.append(fk_compound)
 
     return theory
