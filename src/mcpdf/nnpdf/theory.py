@@ -7,46 +7,11 @@ from validphys.fkparser import load_fktable
 
 #  from validphys.convolution import OP
 
-BASELINE_PDF = "220209-01-rs-nnpdf40"
-
-config = {
-    "fit": BASELINE_PDF,
-    "use_t0": True,
-    "use_cuts": "fromfit",
-    "theory": {"from_": "fit"},
-    "theoryid": {"from_": "theory"},
-    "datacuts": {"from_": "fit"},
-    "t0pdfset": {"from_": "datacuts"},
-    "pdf": {"from_": "fit"},
-    "dataset_inputs": {"from_": "fit"},
-}
+from . import data, defaults
 
 
 @functools.cache
-def data():
-    data = API.dataset_inputs_loaded_cd_with_cuts(**config)
-
-    return data
-
-
-def values():
-    values = []
-
-    for ds in data():
-        values.append(ds.central_values.values)
-
-    return np.concatenate(values)
-
-
-@functools.cache
-def covmat():
-    cov = API.dataset_inputs_covmat_from_systematics(**config)
-
-    return cov
-
-
-@functools.cache
-def theory():
+def theory(config=defaults.config, theoryid=None):
     """Returns the fktable as a dense numpy array that can be directly
     manipulated with numpy
     The return shape is:
@@ -55,12 +20,13 @@ def theory():
     where nx is the length of the xgrid
     and nbasis the number of flavour contributions that contribute
     """
-    theoryid = API.fit(fit=config["fit"]).as_input()["theory"]["theoryid"]
+    if theoryid is None:
+        theoryid = API.fit(fit=config["fit"]).as_input()["theory"]["theoryid"]
 
     theory = []
     loader = Loader()
 
-    for ds in data():
+    for ds in data.data():
         spec = loader.check_dataset(ds.setname, theoryid=theoryid)
 
         cuts = spec.cuts.load()
