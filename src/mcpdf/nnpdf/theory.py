@@ -19,7 +19,7 @@ class FkTable:
         self.flavors = flavors
 
     @classmethod
-    def from_vp_fk(cls, loaded):
+    def from_vp(cls, loaded):
         """Initialize from a `validphys` loaded FkTable.
 
         Parameters
@@ -115,7 +115,7 @@ def theory(config=defaults.config, theoryid=None):
         fk_compound = FkCompound(name=spec.name, operation=spec.op)
         for fkspec in spec.fkspecs:
             loaded = load_fktable(fkspec).with_cuts(cuts)
-            fk_compound.append(FkTable.from_vp_fk(loaded))
+            fk_compound.append(FkTable.from_vp(loaded))
 
         theory.append(fk_compound)
 
