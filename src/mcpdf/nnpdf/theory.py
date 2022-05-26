@@ -13,7 +13,7 @@ from . import data, defaults
 
 
 class FkTable:
-    def __init__(self, table, xgrid, flavors):
+    def __init__(self, table: np.ndarray, xgrid: np.ndarray, flavors: np.ndarray):
         self.table = table
         self.xgrid = xgrid
         self.flavors = flavors
@@ -30,7 +30,7 @@ class FkTable:
         nx = len(loaded.xgrid)
         table = cls.df_to_array(loaded.sigma, ndata, nx, hadronic=loaded.hadronic)
 
-        return cls(table, xgrid=loaded.xgrid, flavors=loaded.shape)
+        return cls(table, xgrid=loaded.xgrid, flavors=loaded.sigma.columns.to_numpy())
 
     @staticmethod
     def df_to_array(
@@ -41,7 +41,6 @@ class FkTable:
         Parameters
         ----------
         """
-
         # Read up the shape of the output table
         nbasis = df.shape[1]
 
@@ -78,9 +77,15 @@ class FkTable:
 
 
 class FkCompound:
-    def __init__(self, operation: str, elements: Optional[list[FkTable]] = None):
+    def __init__(
+        self,
+        operation: str,
+        elements: Optional[list[FkTable]] = None,
+        name: Optional[str] = None,
+    ):
         self.operation = operation
         self.elements = elements if elements is not None else []
+        self.name = name
 
     def append(self, elem: FkTable):
         self.elements.append(elem)
@@ -107,7 +112,7 @@ def theory(config=defaults.config, theoryid=None):
 
         cuts = spec.cuts.load()
 
-        fk_compound = FkCompound(operation=spec.op)
+        fk_compound = FkCompound(name=spec.name, operation=spec.op)
         for fkspec in spec.fkspecs:
             loaded = load_fktable(fkspec).with_cuts(cuts)
             fk_compound.append(FkTable.from_vp_fk(loaded))
