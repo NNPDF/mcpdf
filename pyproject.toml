@@ -6,9 +6,10 @@ authors = ["Alessandro Candido <candido.ale@gmail.com>"]
 packages = [{ include = "mcpdf", from = "src" }]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.9,<3.11"
 a3b2bbc3ced97675ac3a71df45f55ba = "^6.4.0"
 numpy = "^1.22.3"
+eko = "^0.9.3"
 
 [tool.poetry.dev-dependencies]
 ipython = "^8.2.0"

@@ -1,4 +1,3 @@
-import functools
 from typing import Optional
 
 import numpy as np
@@ -91,8 +90,7 @@ class FkCompound:
         self.elements.append(elem)
 
 
-@functools.cache
-def theory(config=defaults.config, theoryid=None):
+def theory(fit: str = defaults.BASELINE_PDF, dataset_inputs=None, theoryid=None):
     """Returns the fktable as a dense numpy array that can be directly
     manipulated with numpy
     The return shape is:
@@ -102,12 +100,17 @@ def theory(config=defaults.config, theoryid=None):
     and nbasis the number of flavour contributions that contribute
     """
     if theoryid is None:
-        theoryid = API.fit(fit=config["fit"]).as_input()["theory"]["theoryid"]
+        theoryid = API.fit(fit=fit).as_input()["theory"]["theoryid"]
 
     theory = []
     loader = Loader()
 
     for ds in data.data():
+        # skip unrequested datasets
+        if dataset_inputs is not None:
+            if ds.setname not in dataset_inputs:
+                continue
+
         spec = loader.check_dataset(ds.setname, theoryid=theoryid)
 
         cuts = spec.cuts.load()
