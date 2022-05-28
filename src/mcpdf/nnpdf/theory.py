@@ -104,9 +104,9 @@ class FkTable:
         transf = disp.get_interpolation(xgrid)
 
         if not self.hadronic:
-            self.table = np.einsum("ji,bfi->bfj", self.table, transf)
+            self.table = np.einsum("ji,bfi->bfj", transf, self.table)
         else:
-            self.table = np.einsum("ji,kh,bfih->bfjk", self.table, transf, transf)
+            self.table = np.einsum("ji,kh,bfih->bfjk", transf, transf, self.table)
 
         self.xgrid = xgrid
 
@@ -121,6 +121,10 @@ class FkCompound:
         self.operation = operation
         self.elements = elements if elements is not None else []
         self.name = name
+
+    def x_reshape(self, xgrid: np.ndarray):
+        for el in self.elements:
+            el.x_reshape(xgrid)
 
     def append(self, elem: FkTable):
         self.elements.append(elem)
