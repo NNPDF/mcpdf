@@ -104,9 +104,9 @@ class FkTable:
         transf = disp.get_interpolation(xgrid)
 
         if not self.hadronic:
-            self.table = np.einsum("bfi,ji->bfj", self.table, transf)
+            self.table = np.einsum("ji,bfi->bfj", self.table, transf)
         else:
-            self.table = np.einsum("bfih,ji,kh->bfjk", self.table, transf, transf)
+            self.table = np.einsum("ji,kh,bfih->bfjk", self.table, transf, transf)
 
         self.xgrid = xgrid
 
