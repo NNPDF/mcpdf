@@ -130,7 +130,9 @@ class FkCompound:
         self.elements.append(elem)
 
 
-def theory(fit: str = defaults.BASELINE_PDF, dataset_inputs=None, theoryid=None):
+def theory(
+    fit: str = defaults.BASELINE_PDF, dataset_inputs=None, theoryid=None
+) -> list[FkCompound]:
     """Returns the fktable as a dense numpy array that can be directly
     manipulated with numpy
     The return shape is:
