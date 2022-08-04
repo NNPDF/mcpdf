@@ -1,7 +1,7 @@
-BASELINE_PDF = "220209-01-rs-nnpdf40"
+BASELINE_PDF = {200: "210713-n3fit-001", 400: "220731-jcm-th400"}
 
 config = {
-    "fit": BASELINE_PDF,
+    "fit": BASELINE_PDF[200],
     "use_t0": True,
     "use_cuts": "fromfit",
     "theory": {"from_": "fit"},

@@ -7,7 +7,7 @@ from . import defaults
 
 
 def data(
-    fit: str = defaults.BASELINE_PDF,
+    fit: str = defaults.BASELINE_PDF[200],
     use_t0: bool = True,
     use_cuts: str = "fromfit",
     theory: str = "fromfit",
@@ -33,7 +33,8 @@ def data(
 
 
 def values(
-    fit: str = defaults.BASELINE_PDF, dataset_inputs: Union[Sequence, str] = "fromfit"
+    fit: str = defaults.BASELINE_PDF[200],
+    dataset_inputs: Union[Sequence, str] = "fromfit",
 ):
     values = []
 
@@ -44,7 +45,7 @@ def values(
 
 
 def covmat(
-    fit: str = defaults.BASELINE_PDF,
+    fit: str = defaults.BASELINE_PDF[200],
     use_t0: bool = True,
     use_cuts: str = "fromfit",
     theory={"from_": "fit"},
