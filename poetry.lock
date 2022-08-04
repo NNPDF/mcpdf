@@ -696,7 +696,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9,<3.11"
-content-hash = "25a176a47628a54f1ff835f1a5e7cb8a2bc1921ee442193aab5b820f87246f9c"
+content-hash = "44822125f4142a53ae2376082ee039633591f05514cbd76d67d6a85e02ad5653"
 
 [metadata.files]
 a3b2bbc3ced97675ac3a71df45f55ba = [
