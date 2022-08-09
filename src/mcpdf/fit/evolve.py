@@ -7,12 +7,14 @@ import eko
 import ekobox as eb
 import numpy as np
 import numpy.typing as npt
+from ekobox import genpdf
 from validphys import loader
 
 NREPLICAS = 10  # TODO: 100
-NFLAVORS = 13
+NFLAVORS = 14
 XGRID = np.geomspace(1e-09, 1.0, num=20)  # TODO: num=50
 INITIAL_PDF = np.random.rand(XGRID.size, NFLAVORS, NREPLICAS)  # TODO: drop
+SETNAME = "mcpdf"
 
 
 def q2grid(Q0: float) -> npt.NDArray:
@@ -81,7 +83,7 @@ def evolve(theoryid: int) -> npt.NDArray:
     Returns
     -------
     np.ndarray
-        evolved PDF set
+        evolved PDF set, dimensions ``(rep, Q2, fl, x)``
 
     """
     central = INITIAL_PDF.mean(axis=0)
@@ -94,9 +96,9 @@ def evolve(theoryid: int) -> npt.NDArray:
 
     evolved = []
     for q2, op in operator["Q2grid"].items():
-        evolved.append(np.einsum("aibj,bj->ai", op["operator"], initpdf))
+        evolved.append(np.einsum("aibj,nbj->nai", op["operator"], initpdf))
 
-    return np.array(evolved)
+    return np.transpose(np.array(evolved), (1, 0, 2, 3))
 
 
 def dump(theoryid: int, evolved: npt.NDArray, dest: pathlib.Path):
@@ -115,4 +117,23 @@ def dump(theoryid: int, evolved: npt.NDArray, dest: pathlib.Path):
     tc = theory_card(theoryid)
     oc = operator_card(tc["Q0"])
 
+    pdfdir = dest / SETNAME
+    if pdfdir.exists():
+        raise FileExistsError("Set directory already exists.")
+    pdfdir.mkdir()
+
     info = eb.gen_info.create_info_file(tc, oc, NREPLICAS + 1, info_update={})
+    genpdf.export.dump_info(pdfdir / f"{SETNAME}.info", info)
+
+    block = dict(Q2grid=q2grid(tc["Q0"]), pids=[], xgrid=XGRID)
+    # data are x*pdf
+    xgrid = oc["interpolation_xgrid"]
+    xevolved = xgrid[np.newaxis, np.newaxis, np.newaxis, :] * evolved
+    for idx, xreplica in enumerate(xevolved):
+        block["data"] = xreplica
+        genpdf.export.dump_blocks(
+            pdfdir,
+            idx,
+            [block],
+            pdf_type="PdfType: replica\nFromMCReplica: {idx}\n",
+        )
