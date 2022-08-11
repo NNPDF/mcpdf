@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 """Create report to compare fits results."""
+import logging
 import pathlib
 
 import click
 
 from ..fit import report
 from . import base
+
+_logger = logging.getLogger(__name__)
 
 
 @base.command.command("report")
@@ -23,4 +26,6 @@ def subcommand(runcard: pathlib.Path, destination: pathlib.Path):
     Produce reports following the template specified by RUNCARD.
 
     """
-    report.report(runcard)
+    repdir = report.report(runcard)
+
+    _logger.info(f"Report generated, you can find in '{repdir}'")

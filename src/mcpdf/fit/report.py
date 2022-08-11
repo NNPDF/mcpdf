@@ -2,7 +2,9 @@
 """Report fit result."""
 import os
 import pathlib
+import shutil
 import sys
+import tempfile
 from contextlib import contextmanager
 
 import validphys.app as vp
@@ -62,8 +64,11 @@ def report(runcard: os.PathLike) -> pathlib.Path:
     """
     runcard = pathlib.Path(runcard)
 
-    with cwd(runcard.parent):
+    tmpdir = pathlib.Path(tempfile.mkdtemp())
+    shutil.copy2(runcard, tmpdir / runcard.name)
+
+    with cwd(tmpdir):
         with argv(f"vp {runcard.name}".split()):
             vp.main()
 
-    return runcard.parent / "output"
+    return tmpdir / "output"
