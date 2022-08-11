@@ -157,6 +157,26 @@ def dump(theoryid: int, evolved: npt.NDArray) -> pathlib.Path:
     return pdfdir
 
 
+def update_prefix(pdf: os.PathLike):
+    """Update file names prefix.
+
+    Parameters
+    ----------
+    pdf: os.PathLike
+        path to PDF set directory
+
+    """
+    pdf = pathlib.Path(pdf)
+
+    info = list(pdf.glob("*.info"))
+    if len(info) != 1:
+        raise FileExistsError("Exactly one info file needed per PDF set")
+    prefix = info[0].stem
+
+    for file in pdf.glob("*"):
+        file.rename(file.with_name(file.name.replace(prefix, pdf.name)))
+
+
 def install(pdf: os.PathLike) -> pathlib.Path:
     """Install pdf in LHAPDF path.
 
@@ -171,5 +191,5 @@ def install(pdf: os.PathLike) -> pathlib.Path:
         destination path
 
     """
-    pdf = pathlib.Path(pdf)
+    pdf = pathlib.Path(pdf).absolute()
     return shutil.copytree(pdf, pathlib.Path(lhapdf.paths()[0]) / pdf.name)

@@ -36,8 +36,10 @@ def subcommand(theory: int, destination: pathlib.Path):
         destination
         / f"mcpdf-{theory}-{hashlib.sha256(evolve.INITIAL_PDF).hexdigest()[:10]}"
     )
+
     pdfdir = evolve.dump(theory, pdf)
     shutil.move(pdfdir, dest)
+    evolve.update_prefix(dest)
 
     _logger.info(f"Fit evolved, stored in '{dest}'")
 
