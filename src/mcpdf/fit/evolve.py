@@ -2,11 +2,14 @@
 """Evolve fit output."""
 import functools
 import logging
+import os
 import pathlib
+import shutil
 import tempfile
 
 import eko
 import ekobox as eb
+import lhapdf
 import numpy as np
 import numpy.typing as npt
 from ekobox import genpdf
@@ -152,3 +155,21 @@ def dump(theoryid: int, evolved: npt.NDArray) -> pathlib.Path:
         )
 
     return pdfdir
+
+
+def install(pdf: os.PathLike) -> pathlib.Path:
+    """Install pdf in LHAPDF path.
+
+    Parameters
+    ----------
+    pdf: os.PathLike
+        path to pdf directory
+
+    Returns
+    -------
+    str
+        destination path
+
+    """
+    pdf = pathlib.Path(pdf)
+    return shutil.copytree(pdf, pathlib.Path(lhapdf.paths()[0]) / pdf.name)

@@ -52,3 +52,10 @@ def install_subcommand(pdf):
     The folder is simply copied into a path discoverable by LHAPDF.
 
     """
+    try:
+        dest = evolve.install(pdf)
+    except FileExistsError:
+        _logger.error(f"'{pdf.name}' already installed")
+        return
+
+    _logger.info(f"PDF '{dest.name}' installed in '{dest.parent}'")
