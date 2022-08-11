@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
-import pathlib
+"""Evolve the result of a fit."""
+import hashlib
 import logging
+import pathlib
+import shutil
 
 import click
 
-from . import base
 from ..fit import evolve
+from . import base
 
 _logger = logging.getLogger(__name__)
 
@@ -20,7 +23,7 @@ _logger = logging.getLogger(__name__)
     help="Alternative destination path (default: $PWD/fits)",
 )
 def subcommand(theory: int, destination: pathlib.Path):
-    """Evolve fit
+    """Evolve fit.
 
     Use THEORY (specified as the NNPDF `theory ID`_) to evove given PDF border
     condition at the given scale.
@@ -28,7 +31,24 @@ def subcommand(theory: int, destination: pathlib.Path):
     .. _theory ID: https://docs.nnpdf.science/theory/theoryindex.html
 
     """
-
     pdf = evolve.evolve(theory)
-    evolve.dump(theory, pdf, destination)
-    _logger.info(f"Fit evolved, stored in '{destination}/mcpdf'")
+    dest = (
+        destination
+        / f"mcpdf-{theory}-{hashlib.sha256(evolve.INITIAL_PDF).hexdigest()[:10]}"
+    )
+    pdfdir = evolve.dump(theory, pdf)
+    shutil.move(pdfdir, dest)
+
+    _logger.info(f"Fit evolved, stored in '{dest}'")
+
+
+@base.command.command("install")
+@click.argument("pdf", type=click.Path(exists=True, path_type=pathlib.Path))
+def install_subcommand(pdf):
+    """Install PDF set.
+
+    The PDF path given is consider to be the path to a folder containing info
+    and replicas files.
+    The folder is simply copied into a path discoverable by LHAPDF.
+
+    """

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """Evolve fit output."""
 import functools
-import pathlib
 import logging
+import pathlib
+import tempfile
 
 import eko
 import ekobox as eb
@@ -17,7 +18,6 @@ NREPLICAS = 10  # TODO: 100
 NFLAVORS = 14
 XGRID = np.geomspace(1e-09, 1.0, num=5)  # TODO: num=50
 INITIAL_PDF = np.random.rand(NREPLICAS, NFLAVORS, XGRID.size)  # TODO: drop
-SETNAME = "mcpdf"
 
 
 def q2grid(Q0: float) -> npt.NDArray:
@@ -108,7 +108,7 @@ def evolve(theoryid: int) -> npt.NDArray:
     return np.transpose(np.array(evolved), (1, 0, 2, 3))
 
 
-def dump(theoryid: int, evolved: npt.NDArray, dest: pathlib.Path):
+def dump(theoryid: int, evolved: npt.NDArray) -> pathlib.Path:
     """Dump an evolved PDF set in LHAPDF format.
 
     Parameters
@@ -117,17 +117,18 @@ def dump(theoryid: int, evolved: npt.NDArray, dest: pathlib.Path):
         ID of the theory to be extracted
     evolved: np.ndarray
         evolved PDF set
-    dest: pathlib.Path
-        destination folder
+
+    Returns
+    -------
+    pathlib.Path
+        path to temporary folder, containing the LHAPDF set
 
     """
     tc = theory_card(theoryid)
     oc = operator_card(tc["Q0"])
 
-    pdfdir = dest / SETNAME
-    if pdfdir.exists():
-        raise FileExistsError("Set directory already exists.")
-    pdfdir.mkdir()
+    tmpdir = tempfile.mkdtemp()
+    pdfdir = pathlib.Path(tmpdir).absolute()
 
     info = eb.gen_info.create_info_file(tc, oc, NREPLICAS + 1, info_update={})
     for key, value in info.items():
@@ -144,5 +145,10 @@ def dump(theoryid: int, evolved: npt.NDArray, dest: pathlib.Path):
     for idx, xreplica in enumerate(xevolved):
         block["data"] = xreplica.transpose(0, 2, 1).reshape(-1, xreplica.shape[1])
         genpdf.export.dump_blocks(
-            pdfdir, idx, [block], pdf_type="PdfType: replica\nFromMCReplica: {idx}\n"
+            pdfdir,
+            idx,
+            [block],
+            pdf_type="PdfType: replica\nFromMCReplica: {idx}\n",
         )
+
+    return pdfdir
