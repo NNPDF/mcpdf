@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
+"""Create report to compare fits results."""
 import pathlib
 
 import click
 
+from ..fit import report
 from . import base
 
 
-@base.command.group("report")
+@base.command.command("report")
+@click.argument("runcard", type=click.Path(exists=True, path_type=pathlib.Path))
 @click.option(
     "-d",
     "--destination",
@@ -14,5 +17,10 @@ from . import base
     default=pathlib.Path.cwd().absolute() / "reports",
     help="Alternative destination path (default: $PWD/reports)",
 )
-def subcommand():
-    """Generate fit reports"""
+def subcommand(runcard: pathlib.Path, destination: pathlib.Path):
+    """Generate fit reports.
+
+    Produce reports following the template specified by RUNCARD.
+
+    """
+    report.report(runcard)
