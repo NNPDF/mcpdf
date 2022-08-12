@@ -1,13 +1,15 @@
 meta:
-  author: Alessandro Candido
-  title: MCPDF example basic report
-  keywords: [MCPDF, basic]
+  author: #AUTHOR#
+  title: #TITLE#
+  keywords: #TAGS#
 
 notes: ""
 
 pdfs:
-- {id: NNPDF40_nnlo_as_01180_1000, label: NNPDF4.0}
-- {id: MCPDF, label: MCPDF}
+  - id: #BASE#
+    label: #@LABEL-BASE#
+  - id: #CURRENT#
+    label: #LABEL-CURRENT#
 
 bases:
   - basis: flavour
@@ -20,7 +22,6 @@ Qs:
 scales:
   - xscale: linear
   - xscale: log
-
 
 template_text: |
   ## Note
@@ -37,4 +38,4 @@ template_text: |
   {@endwith@}
 
 actions_:
-- report(main=True)
+  - report(main=True)
