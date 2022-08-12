@@ -7,7 +7,7 @@ import shutil
 
 import click
 
-from ..fit import evolve
+from ..fit import evolve, install
 from . import base
 
 _logger = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ def install_subcommand(pdf):
 
     """
     try:
-        dest = evolve.install(pdf)
+        dest = install.install(pdf)
     except FileExistsError:
         _logger.error(f"'{pdf.name}' already installed")
         return

@@ -4,12 +4,10 @@ import functools
 import logging
 import os
 import pathlib
-import shutil
 import tempfile
 
 import eko
 import ekobox as eb
-import lhapdf
 import numpy as np
 import numpy.typing as npt
 from ekobox import genpdf
@@ -175,21 +173,3 @@ def update_prefix(pdf: os.PathLike):
 
     for file in pdf.glob("*"):
         file.rename(file.with_name(file.name.replace(prefix, pdf.name)))
-
-
-def install(pdf: os.PathLike) -> pathlib.Path:
-    """Install pdf in LHAPDF path.
-
-    Parameters
-    ----------
-    pdf: os.PathLike
-        path to pdf directory
-
-    Returns
-    -------
-    str
-        destination path
-
-    """
-    pdf = pathlib.Path(pdf).absolute()
-    return shutil.copytree(pdf, pathlib.Path(lhapdf.paths()[0]) / pdf.name)
