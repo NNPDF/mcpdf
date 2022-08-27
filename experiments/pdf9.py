@@ -11,12 +11,17 @@ from scipy import linalg, interpolate
 from matplotlib import pyplot as plt
 import gvar
 
-np.random.seed(20220416)
+np.random.seed(20220807)
+# do not use np.random.default_rng because gvar uses the old numpy gen
 warnings.filterwarnings('ignore', r'total derivative orders \(\d+, \d+\) greater than kernel minimum \(\d+, \d+\)')
 
 #### DEFINITIONS ####
 
-ndata = 500 # number of datapoints
+ndata = 3000 # number of datapoints
+# 500 is too low to get a good fit for the hyperparameters
+# 1000 is good w/o passing the pre-decomposed data error, w/ has problems
+# 2000 is fine w/ pre-decomposition
+# 4000 has difficulties moving away from the starting point
 
 qtopm = np.array([
     #  d, db,  u, ub,  s, sb,  c, cb
@@ -112,9 +117,15 @@ nx = len(datagrid)
 gridinterp = interpolate.interp1d(np.linspace(0, 1, len(grid)), grid)
 plotgrid = gridinterp(np.linspace(0, 1, 200))
 
-# linear data
-M = np.random.randn(ndata, nflav, nx) # linear map PDF(grid) -> data
-M /= np.sqrt(M.size / ndata) # normalize to have approx. data = 1
+# generated linear map PDF(grid) -> data
+i = np.arange(ndata)[:, None, None]
+j = np.arange(nx)[None, None, :]
+intensity_diagonal = np.exp(-1/2 * (i / ndata - j / nx) ** 2 * ndata * nx)
+intensity_flat = 1
+intensity = 0.9 * intensity_diagonal + 0.1 * intensity_flat
+intensity = np.broadcast_to(intensity, (ndata, nflav, nx))
+dof = 3
+M = intensity * np.random.chisquare(dof, intensity.shape) / dof
 
 #### GAUSSIAN PROCESS ####
 # Ti ~ GP   (i = 3, 8, 15)
@@ -148,7 +159,7 @@ hyperprior = {
 }
 
 def makegp(hp):
-    gp = lgp.GP(checkpos=False)
+    gp = lgp.GP(checkpos=False, checksym=False, solver='chol', eps=1e-10)
     
     eps = grid[0]
     scalefun = lambda x: hp['scale'] * (x + eps) # = 1 / log'(x)
@@ -192,7 +203,7 @@ def makegp(hp):
     gp.addlintransf(lambda *args: jnp.stack(args), [proc + '-datagrid' for proc in tpnames], 'datagrid')
 
     # linear data
-    gp.addtransf({'datagrid': M}, 'data', axes=2)
+    gp.addtransf({'datagrid': M}, 'datalatent', axes=2)
 
     # define flavor basis PDFs
     gp.addprocrescale(lambda x: 1 / x, 'Sigma', 'xSigma')
@@ -236,42 +247,52 @@ M[:, 0, :] /= datagrid ** truehp['alpha_Sigma']
 M[:, -1, :] /= datagrid ** truehp['alpha_g']
 
 truegp = makegp(truehp)
-trueprior = truegp.predfromdata(constraints, ['data', 'plotgrid'])
-truedata = gvar.sample(trueprior)
+trueprior, trueprior_cov = truegp.predfromdata(constraints, ['datalatent', 'plotgrid'], raw=True)
+# no gvars because it's slow with >1000 datapoints
+truedata = lgp.sample(trueprior, trueprior_cov, eps=1e-10)
 
-dataerr = {
-    k: np.full_like(v, 0.1 * (np.max(v) - np.min(v)))
-    for k, v in truedata.items()
-}
-data = gvar.make_fake_data(gvar.gvar(truedata, dataerr))
+v = truedata['datalatent']
+dataerr = np.full_like(v, 0.1 * (np.max(v) - np.min(v)))
+data = gvar.make_fake_data(gvar.gvar(v, dataerr))
+dataerrcov = gvar.evalcov(data)
+datamean = gvar.mean(data)
 
 def check_constraints(y):
     # integrate approximately with trapezoid rule
     integ = np.sum((y[:, 1:] + y[:, :-1]) / 2 * np.diff(plotgrid), 1)
-    print('int dx x (Sigma(x) + g(x)) =', integ[0] + integ[-1])
+    print(f'int dx x (Sigma(x) + g(x)) = {integ[0] + integ[-1]:.2g}')
     for i in range(1, 5):
-        print(f'int dx {tpnames[i]}(x) =', integ[i])
+        print(f'int dx {tpnames[i]}(x) = {integ[i]:.2g}')
     for i, name in enumerate(tpnames):
-        print(f'{name}(1) =', y[i, -1])
+        print(f'{name}(1) = {y[i, -1]:.2g}')
 
 print('\ncheck constraints in fake data:')
 check_constraints(truedata['plotgrid'])
 
 #### FIT ####
 
-information = dict(data=data['data'], **constraints)
-fit = lgp.empbayes_fit(hyperprior, makegp, information, raises=False, jit=True)
-# TODO option to provide starting point
-# TODO method to print a report, with the number of function/jac/hess
-# evaluations, the elapsed time, hyperparameters prior vs. result
+information = gvar.gvar(dict(datalatent=data, **constraints))
+# infcov = gvar.evalcov(information)
+infcov_flat = gvar.evalcov(information.buf)
+infcovdec = lgp.GP.decompose(infcov_flat, 'eigcut-')
+# use eigcut- to cut away the 0 errors of the constraints
+fitkw = dict(
+    raises=False,
+    jit=True,
+    method='hessian',
+    verbosity=3,
+    # initial=truehp,
+)
+fit = lgp.empbayes_fit(hyperprior, makegp, (information, infcovdec), **fitkw)
 
 print('\nhyperparameters (true, fitted, prior):')
 hyperprior = gvar.BufferDict(hyperprior)
 for k in fit.p.all_keys():
     print(f'{k:15}{truehp[k]:>#10.2g}{str(fit.p[k]):>15}{str(hyperprior[k]):>15}')
 
-gp = makegp(gvar.mean(fit.p)) # TODO provide the last GP in empbayes_fit (checking that it corresponds to the minimum) => and only if it is tracer-free (currently true). Also provide pmean and pcov.
-pred = gp.predfromdata(information, ['data', 'plotgrid'])
+gp = makegp(gvar.mean(fit.p))
+pred, predcov = gp.predfromdata(information, ['datalatent', 'plotgrid'], raw=True)
+# use raw because with gvars it becomes slow above ~1000 datapoints
 
 print('\ncheck constraints in fit:')
 check_constraints(pred['plotgrid'])
@@ -298,28 +319,68 @@ for i in range(nflav):
         expon = fit.p['alpha_' + label[1:]]
         label += f' $\\sim x^{{{expon}}}$'
     
-    ypdf = pred['plotgrid'][i]
-    m = gvar.mean(ypdf)
-    s = gvar.sdev(ypdf)
+    ypdf = pred['plotgrid'][i, :]
+    ypdfcov = predcov['plotgrid', 'plotgrid'][i, :, i, :]
+    m = ypdf
+    s = np.sqrt(np.diag(ypdfcov))
     ax.fill_between(plotgrid, m - s, m + s, label=label, alpha=0.4, facecolor=f'C{i}')
 
     ax.plot(plotgrid, truedata['plotgrid'][i], color=f'C{i}')
 
     ax.set_xscale('log')
 
+for ax in axs.flat[:3]:
+    ax.axvline(datagrid[0], linestyle='--', color='black')
+
+axs[0, 0].set_yscale('symlog', linthresh=10, subs=[2, 3, 4, 5, 6, 7, 8, 9])
+
 ax = axs[1, 1]
-zero = truedata['data']
+
+zero = truedata['datalatent']
 x = np.arange(len(zero))
-ax.plot(x, truedata['data'] - zero, drawstyle='steps-mid', color='black', label='truth')
-d = data['data'] - zero
-ax.errorbar(x, gvar.mean(d), gvar.sdev(d), color='black', linestyle='', linewidth=1, capsize=2, label='data')
-d = pred['data'] - zero
-m = gvar.mean(d)
-s = gvar.sdev(d)
+
+# decimate the data to be displayed
+sl = np.s_[::len(x) // 250 + 1]
+zero = zero[sl]
+x = x[sl]
+
+ax.plot(x, truedata['datalatent'][sl] - zero, drawstyle='steps-mid', color='black', label='truth')
+
+d = datamean[sl] - zero
+ax.errorbar(x, d, dataerr[sl], color='black', linestyle='', linewidth=1, capsize=2, label='data')
+
+d = pred['datalatent'][sl] - zero
+dcov = predcov['datalatent', 'datalatent'][sl, sl]
+m = d
+s = np.sqrt(np.diag(dcov))
 ax.fill_between(x, m - s, m + s, step='mid', color='gray', alpha=0.8, label='fit', zorder=10)
 
 for ax in axs.flat:
     ax.legend()
 
 fig.tight_layout()
+fig.show()
+
+
+fig, ax = plt.subplots(clear=True, num='pdf9-parameters')
+
+ax.set_title('Hyperparameters (transformed)')
+
+x = list(range(len(hyperprior)))
+keys = list(hyperprior.keys())
+yprior = list(hyperprior.values())
+ypost = list(fit.p.values())
+ytrue = list(truehp.values())
+
+ax.set_xticks(x)
+ax.set_xticklabels(keys)
+
+m = gvar.mean(yprior)
+s = gvar.sdev(yprior)
+ax.fill_between(x, m - s, m + s, label='prior', color='lightgray')
+ax.errorbar(x, gvar.mean(ypost), gvar.sdev(ypost), label='posterior', color='black', linestyle='', capsize=3, marker='.')
+ax.plot(ytrue, drawstyle='steps-mid', label='true value', color='red')
+
+ax.legend()
+
 fig.show()
