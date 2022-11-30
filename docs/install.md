@@ -30,3 +30,6 @@ Instructions to run Jupyter Notebooks in this repo.
 2. Run `poe install-nb` to install the kernel relative to the Poetry environment
 3. Launch notebook server (e.g. `poetry run jupyter lab`)
 4. Select the installed kernel: "Kernel">"Change Kernel ...">"mcpdf-..."
+
+Note by Giacomo: `poe install-nb` complained that `ipykernel` was missing, I
+installed it with `pip`. I also had to install `notebook` to use jupyter.
