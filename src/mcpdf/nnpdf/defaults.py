@@ -1,4 +1,4 @@
-BASELINE_PDF = "220209-01-rs-nnpdf40"
+BASELINE_PDF = "210713-n3fit-001" # corresponding to NNPDF40 nnlo baseline fit
 
 config = {
     "fit": BASELINE_PDF,
