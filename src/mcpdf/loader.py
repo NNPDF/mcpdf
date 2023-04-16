@@ -49,12 +49,29 @@ def load_data(datasets_list):
     return y, cov
 
 
-def build_FK(datasets_list, theoryid=None, xgrid):
+def build_FK(datasets_list, xgrid=None, theoryid=None):
     """Return a unique FK table for all the datasets"""
 
     fks = theory.theory(dataset_inputs=datasets_list, theoryid=theoryid)
+
     if theoryid is None:
-        nxgrid = xgrid.size
+        # if the theory is the default one (200), then you need to redefine
+        # the fk tables on a common grid, which has to be given as input
+        try:
+            nxgrid = xgrid.size
+        except:
+            raise ValueError(
+                f"The default theory is being used, you need to provide an input xgrid for reinterpolation"
+            )
+
+        # reinterpolate to common grid and rershape in 2 dim
+        fk_bare_list = []
+        for fk in fks:
+            fk.x_reshape(xgrid)
+            ndata, nbasis, nx = fk.elements[0].table.shape
+            # xfk = np.multiply(fk.elements[0].table, xgrid)
+            # fk_bare_list.append(np.reshape(xfk, (ndata, nbasis * nx)))
+            fk_bare_list.append(np.reshape(fk.elements[0].table, (ndata, nbasis * nx)))
     else:
         nxgrid = (fks[0].elements[0].xgrid).size
 
@@ -78,15 +95,6 @@ def build_FK(datasets_list, theoryid=None, xgrid):
 
         matrix_list.append(np.array(matrix))
 
-    # reinterpolate to common grid and rershape in 2 dim
-    fk_bare_list = []
-    for fk in fks:
-        fk.x_reshape(xgrid)
-        ndata, nbasis, nx = fk.elements[0].table.shape
-        # xfk = np.multiply(fk.elements[0].table, xgrid)
-        # fk_bare_list.append(np.reshape(xfk, (ndata, nbasis * nx)))
-        fk_bare_list.append(np.reshape(fk.elements[0].table, (ndata, nbasis * nx)))
-
     # multiply fk for the matrix
     reshaped_fk = []
     for fk_bare, matrix in zip(fk_bare_list, matrix_list):
@@ -100,12 +108,12 @@ def build_FK(datasets_list, theoryid=None, xgrid):
 #######################################
 
 
-def build_FK_FNS(xgrid):
+def build_FK_FNS(xgrid=None, theoryid=None):
     """Build the fk table for the observable
     F^{NS} = F^p_2 - F^d_2, starting from the FK for F^p_2
     and taking as input the xgrid"""
     dataset = ["BCDMSP_dwsh"]
-    FKp = build_FK(dataset, xgrid)
+    FKp = build_FK(dataset, xgrid=xgrid, theoryid=theoryid)
     indexT3 = 6
     lengrid = xgrid.size
 
