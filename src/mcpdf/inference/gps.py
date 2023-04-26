@@ -10,8 +10,8 @@ from . import kernels as kk
 # use these ones (DIS only), I ll use the following labels instead
 flavor_labels = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 nflavs = len(flavor_labels)
-flavs_valence = [2,3,4,5] # flavs for which a valence sumrule is implemented
-flavs_momentum = [0,1] # flavs involved in momentum sumrule
+flavs_valence = [2, 3, 4, 5]  # flavs for which a valence sumrule is implemented
+flavs_momentum = [0, 1]  # flavs involved in momentum sumrule
 
 
 # default hyperparameters
@@ -32,6 +32,7 @@ ngridt = gridt.size
 
 
 # linear transformation for momentum sumrules
+
 
 def build_sumrules(nflavs, flav_valence, flav_momentum=None):
     """
@@ -56,10 +57,7 @@ def build_sumrules(nflavs, flav_valence, flav_momentum=None):
     return S
 
 
-S = build_sumrules(nflavs, flavs_valence, flavs_momentum) 
-
-
-
+S = build_sumrules(nflavs, flavs_valence, flavs_momentum)
 
 
 def conditioning(mean, cov, y):
@@ -123,7 +121,7 @@ def block_diag_from_list(blocks):
     return res
 
 
-def evaluate_on_grid(k, x, y, args):
+def evaluate_on_grid(k, x, y, *args):
     """Evaluate the function k having arguments args on
     the grids x and y
     Parameters:
@@ -134,7 +132,7 @@ def evaluate_on_grid(k, x, y, args):
     Returns:
         res (np.narray): narray containing values of k(x,y,args)
     """
-    return k(x[:, None], y[None, :], args)
+    return k(x[:, None], y[None, :], *args)
 
 
 class GP_generator:
@@ -158,9 +156,7 @@ class GP_generator:
             Af = np.zeros(ngrid)
             Af[ngrid - 1] = 1.0
             A_ = [Af for f in range(0, nflavs)]
-            A = block_diag(A_[0], A_[1])
-            for i in range(2, nflavs):
-                A = block_diag(A, A_[i])
+            A = block_diag_from_list(A_)
             self.fk = np.block([[fk], [A]])
             y_kinlim = np.zeros(nflavs)
             self.y = np.concatenate([y, y_kinlim])
@@ -213,30 +209,22 @@ class GP_generator:
         for sigma, l0, alpha in zip(
             self.theta["sigma"], self.theta["l0"], self.theta["alpha"]
         ):
-            Sxx_.append(k(self.grid[:, None], self.grid[None, :], sigma, l0, alpha))
-            Sxsx_.append(k(grids[:, None], self.grid[None, :], sigma, l0, alpha))
-            Sxsxs_.append(k(grids[:, None], grids[None, :], sigma, l0, alpha))
 
-            dxsTxsxt_.append(dxK(grids[:, None], gridt[None, :], sigma, l0, alpha))
-            dxTxxt_.append(dxK(self.grid[:, None], gridt[None, :], sigma, l0, alpha))
-            Txtxt_.append(K(gridt[:, None], gridt[None, :], sigma, l0, alpha))
+            Sxx_.append(evaluate_on_grid(k, self.grid, self.grid, sigma, l0, alpha))
+            Sxsx_.append(evaluate_on_grid(k, grids, self.grid, sigma, l0, alpha))
+            Sxsxs_.append(evaluate_on_grid(k, grids, grids, sigma, l0, alpha))
+
+            dxsTxsxt_.append(evaluate_on_grid(dxK, grids, gridt, sigma, l0, alpha))
+            dxTxxt_.append(evaluate_on_grid(dxK, self.grid, gridt, sigma, l0, alpha))
+            Txtxt_.append(evaluate_on_grid(K, gridt, gridt, sigma, l0, alpha))
 
         # construct the block diagonal blocks
-        Sxx = block_diag(Sxx_[0], Sxx_[1])
-        Sxsxs = block_diag(Sxsxs_[0], Sxsxs_[1])
-        Sxsx = block_diag(Sxsx_[0], Sxsx_[1])
-        dxsTxsxt = block_diag(dxsTxsxt_[0], dxsTxsxt_[1])
-        dxTxxt = block_diag(dxTxxt_[0], dxTxxt_[1])
-        Txtxt = block_diag(Txtxt_[0], Txtxt_[1])
-
-        # if you have more tahn 2 flavors
-        for i in range(2, nflavs):
-            Sxx = block_diag(Sxx, Sxx_[i])
-            Sxsxs = block_diag(Sxsxs, Sxsxs_[i])
-            Sxsx = block_diag(Sxsx, Sxsx_[i])
-            dxsTxsxt = block_diag(dxsTxsxt, dxsTxsxt_[i])
-            dxTxxt = block_diag(dxTxxt, dxTxxt_[i])
-            Txtxt = block_diag(Txtxt, Txtxt_[i])
+        Sxx = block_diag_from_list(Sxx_)
+        Sxsxs = block_diag_from_list(Sxsxs_)
+        Sxsx = block_diag_from_list(Sxsx_)
+        dxsTxsxt = block_diag_from_list(dxsTxsxt_)
+        dxTxxt = block_diag_from_list(dxTxxt_)
+        Txtxt = block_diag_from_list(Txtxt_)
 
         # complete construction of blocks adding fk tables, exp information
         # and sumrules operator
