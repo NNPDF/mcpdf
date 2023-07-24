@@ -1,0 +1,41 @@
+meta:
+  author: #AUTHOR#
+  title: #TITLE#
+  keywords: #TAGS#
+
+notes: ""
+
+pdfs:
+  - id: #BASE#
+    label: #@LABEL-BASE#
+  - id: #CURRENT#
+    label: #LABEL-CURRENT#
+
+bases:
+  - basis: flavour
+  - basis: evolution
+
+Qs:
+  - Q: 1.65
+  - Q: 100
+
+scales:
+  - xscale: linear
+  - xscale: log
+
+template_text: |
+  ## Note
+  {@notes@}
+  {@with Qs@}
+  ## Q={@Q@}
+  {@with bases@}
+  ### {@basis@} basis
+  {@with scales@}
+  #### {@xscale@} scale
+  {@plot_pdfreplicas@}
+  {@endwith@}
+  {@endwith@}
+  {@endwith@}
+
+actions_:
+  - report(main=True)

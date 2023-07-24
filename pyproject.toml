@@ -1,3 +1,7 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.poetry]
 name = "mcpdf"
 version = "0.1.0"
@@ -6,10 +10,13 @@ authors = ["Alessandro Candido <candido.ale@gmail.com>"]
 packages = [{ include = "mcpdf", from = "src" }]
 
 [tool.poetry.dependencies]
-python = "^3.9,<3.11"
+python = "^3.10,<3.11"
 a3b2bbc3ced97675ac3a71df45f55ba = "^6.4.0"
 numpy = "^1.22.3"
-eko = "^0.9.3"
+PyYAML = "^6.0"
+eko = { version = "^0.10.0", extras = ["box"] }
+click = "^8.1.3"
+rich = "^12.5.1"
 
 [tool.poetry.dev-dependencies]
 ipython = "^8.2.0"
@@ -18,9 +25,8 @@ ipykernel = "^6.13.0"
 matplotlib = "^3.5.2"
 seaborn = "^0.11.2"
 
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+[tool.poetry.scripts]
+mcpdf = "mcpdf.cli:command"
 
 [tool.poe.tasks]
 # docs = { "shell" = "cd doc; make html" }

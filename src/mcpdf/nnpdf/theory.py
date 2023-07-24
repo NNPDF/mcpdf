@@ -131,7 +131,7 @@ class FkCompound:
 
 
 def theory(
-    fit: str = defaults.BASELINE_PDF, dataset_inputs=None, theoryid=None
+    fit: str = defaults.BASELINE_PDF[200], dataset_inputs=None, theoryid=None
 ) -> list[FkCompound]:
     """Returns the fktable as a dense numpy array that can be directly
     manipulated with numpy
